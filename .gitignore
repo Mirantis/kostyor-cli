@@ -1,0 +1,9 @@
+.tox
+AUTHORS
+ChangeLog
+*.egg-info/
+doc/build
+.testrepository
+.eggs
+build
+dist
