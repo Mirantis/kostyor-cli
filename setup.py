@@ -21,8 +21,8 @@ setup(
     author='Kostyor Authors',
     author_email='TODO',
 
-    url='https://github.com/sc68cal/kostyor',
-    download_url='https://github.com/sc68cal/kostyor/tarball/master',
+    url='https://github.com/sc68cal/kostyor-cli',
+    download_url='https://github.com/sc68cal/kostyor-cli/tarball/master',
 
     classifiers=['Development Status :: 3 - Alpha',
                  'License :: OSI Approved :: Apache Software License',
