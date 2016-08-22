@@ -3,6 +3,7 @@ import os
 
 import logging
 import requests
+import six
 import sys
 
 from cliff.command import Command
@@ -283,7 +284,8 @@ class ListUpgradeVersions(Lister):
         data = requests.get(
             'http://{}:{}/list-upgrade-versions'.format(host, port)).json()
         data = [i.capitalize() for i in data]
-        versions = ((data[i], data[i+1]) for i in xrange(len(data) - 1))
+        versions = ((data[i], data[i+1])
+                    for i in six.moves.range(len(data) - 1))
         return (columns, versions)
 
     def list(cluster_id):
