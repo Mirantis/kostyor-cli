@@ -81,8 +81,8 @@ class ClusterDiscovery(ShowOne):
         output = ()
         if data.status_code == 201:
             data = data.json()
-            output = (data[i].capitalize() for i in ['id', 'name', 'version',
-                                                     'status'])
+            output = (data[i] for i in ['id', 'name', 'version',
+                                        'status'])
         else:
             _print_error_msg(data)
         return (columns, output)
@@ -96,7 +96,6 @@ class ClusterDiscovery(ShowOne):
 class ClusterList(Lister):
     def take_action(self, parsed_args):
         columns = ('Cluster Name', 'Cluster ID', 'Status')
-
         data = requests.get('http://{}:{}/cluster-list'.format(host, port))
         clusters = data.json()['clusters']
         output = ((i['name'], i['id'], i['status']) for i in clusters)
@@ -125,8 +124,8 @@ class ClusterStatus(ShowOne):
         output = ()
         if data.status_code == 200:
             data = data.json()
-            output = (data[i].capitalize() for i in ['id', 'name', 'version',
-                                                     'status'])
+            output = (data[i] for i in ['id', 'name', 'version',
+                                        'status'])
         else:
             _print_error_msg(data)
         return (columns, output)
