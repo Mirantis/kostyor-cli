@@ -3,6 +3,7 @@ import os
 
 import logging
 import requests
+import six
 import sys
 
 from cliff.command import Command
@@ -80,8 +81,8 @@ class ClusterDiscovery(ShowOne):
         output = ()
         if data.status_code == 201:
             data = data.json()
-            output = (data[i].capitalize() for i in ['id', 'name', 'version',
-                                                     'status'])
+            output = (data[i] for i in ['id', 'name', 'version',
+                                        'status'])
         else:
             _print_error_msg(data)
         return (columns, output)
@@ -95,7 +96,6 @@ class ClusterDiscovery(ShowOne):
 class ClusterList(Lister):
     def take_action(self, parsed_args):
         columns = ('Cluster Name', 'Cluster ID', 'Status')
-
         data = requests.get('http://{}:{}/cluster-list'.format(host, port))
         clusters = data.json()['clusters']
         output = ((i['name'], i['id'], i['status']) for i in clusters)
@@ -124,8 +124,8 @@ class ClusterStatus(ShowOne):
         output = ()
         if data.status_code == 200:
             data = data.json()
-            output = (data[i].capitalize() for i in ['id', 'name', 'version',
-                                                     'status'])
+            output = (data[i] for i in ['id', 'name', 'version',
+                                        'status'])
         else:
             _print_error_msg(data)
         return (columns, output)
@@ -283,7 +283,8 @@ class ListUpgradeVersions(Lister):
         data = requests.get(
             'http://{}:{}/list-upgrade-versions'.format(host, port)).json()
         data = [i.capitalize() for i in data]
-        versions = ((data[i], data[i+1]) for i in xrange(len(data) - 1))
+        versions = ((data[i], data[i+1])
+                    for i in six.moves.range(len(data) - 1))
         return (columns, versions)
 
     def list(cluster_id):
