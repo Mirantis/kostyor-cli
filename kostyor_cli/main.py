@@ -107,7 +107,7 @@ class ClusterStatus(ShowOne):
     description = ("Returns information about a cluster as a list of nodes "
                    "belonging to specified cluster and list of services "
                    "running on these nodes")
-    action = "cluster-status"
+    action = "clusters"
 
     def get_parser(self, prog_name):
         parser = super(ClusterStatus, self).get_parser(prog_name)
