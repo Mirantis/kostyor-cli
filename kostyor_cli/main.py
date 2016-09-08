@@ -96,7 +96,7 @@ class ClusterDiscovery(ShowOne):
 class ClusterList(Lister):
     def take_action(self, parsed_args):
         columns = ('Cluster Name', 'Cluster ID', 'Status')
-        data = requests.get('http://{}:{}/cluster-list'.format(host, port))
+        data = requests.get('http://{}:{}/clusters'.format(host, port))
         clusters = data.json()['clusters']
         output = ((i['name'], i['id'], i['status']) for i in clusters)
 
