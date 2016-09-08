@@ -86,7 +86,7 @@ class ClusterDiscoveryTestCase(CLIBaseTestCase):
 class ClusterListTestCase(CLIBaseTestCase):
     def test_cluster_list__run_without_args__correct_request(self):
         requests.get = mock.Mock()
-        expected_request_str = 'http://1.1.1.1:22/cluster-list'
+        expected_request_str = 'http://1.1.1.1:22/clusters'
         command = ['cluster-list', ]
         self.app.run(command)
         requests.get.assert_called_once_with(expected_request_str)
@@ -95,7 +95,7 @@ class ClusterListTestCase(CLIBaseTestCase):
 class ClusterStatusTestCase(CLIBaseTestCase):
     def setUp(self):
         super(ClusterStatusTestCase, self).setUp()
-        self.expected_request_str = 'http://1.1.1.1:22/cluster-status/1234'
+        self.expected_request_str = 'http://1.1.1.1:22/clusters/1234'
         self.command = ['cluster-status', '1234']
         requests.get = mock.Mock(return_value=self.resp)
 

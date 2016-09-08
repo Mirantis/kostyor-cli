@@ -96,7 +96,7 @@ class ClusterDiscovery(ShowOne):
 class ClusterList(Lister):
     def take_action(self, parsed_args):
         columns = ('Cluster Name', 'Cluster ID', 'Status')
-        data = requests.get('http://{}:{}/cluster-list'.format(host, port))
+        data = requests.get('http://{}:{}/clusters'.format(host, port))
         clusters = data.json()['clusters']
         output = ((i['name'], i['id'], i['status']) for i in clusters)
 
@@ -120,7 +120,7 @@ class ClusterStatus(ShowOne):
         columns = ('Cluster ID', 'Cluster Name', 'OpenStack Version',
                    'Status',)
         data = requests.get(
-            'http://{}:{}/cluster-status/{}'.format(host, port, cluster_id))
+            'http://{}:{}/{}/{}'.format(host, port, self.action, cluster_id))
         output = ()
         if data.status_code == 200:
             data = data.json()
@@ -130,8 +130,10 @@ class ClusterStatus(ShowOne):
             _print_error_msg(data)
         return (columns, output)
 
+    @staticmethod
     def get_status(cluster_id):
-        r = _make_request_with_cluster_id('get', 'cluster-status', cluster_id)
+        r = _make_request_with_cluster_id('get', ClusterStatus.action,
+                                          cluster_id)
         if r.status_code != 200:
             message = r.json()['message']
             raise Exception('Failed to get cluster status: %s' % message)
