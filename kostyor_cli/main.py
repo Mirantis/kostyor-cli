@@ -96,8 +96,18 @@ class ClusterDiscovery(ShowOne):
 class ClusterList(Lister):
     def take_action(self, parsed_args):
         columns = ('Cluster Name', 'Cluster ID', 'Status')
-        data = requests.get('http://{}:{}/clusters'.format(host, port))
-        clusters = data.json()['clusters']
+        data = requests.get('http://{}:{}/clusters'.format(host, port)).json()
+
+        # FIXME: This step is required as intermediate in order to do not
+        #        break integration tests in Kostyor. When patch [1] is
+        #        lander we can remove this code.
+        #
+        #        [1]: https://github.com/sc68cal/Kostyor/pull/39
+        if isinstance(data, list):
+            clusters = data.json()
+        else:
+            clusters = data.json()['clusters']
+
         output = ((i['name'], i['id'], i['status']) for i in clusters)
 
         return (columns, output)
