@@ -353,6 +353,55 @@ class ListDiscoveryMethods(Lister):
         return result
 
 
+class HostList(Lister):
+    description = ("Returns a list of hosts belonging to specified cluster")
+
+    def get_parser(self, prog_name):
+        parser = super(HostList, self).get_parser(prog_name)
+        parser.add_argument('cluster_id')
+        return parser
+
+    def take_action(self, parsed_args):
+        cluster_id = parsed_args.cluster_id
+        columns = ('Host ID', 'Host Name')
+        request_str = 'http://{}:{}/clusters/{}/hosts'.format(host,
+                                                              port,
+                                                              cluster_id)
+        data = requests.get(request_str)
+        output = ()
+        if data.status_code == 200:
+            output = ((host['id'], host['hostname']) for host in data.json())
+        else:
+            _print_error_msg(data)
+        return (columns, output)
+
+
+class ServiceList(Lister):
+    description = ("Returns a list of services belonging to specified cluster")
+
+    def get_parser(self, prog_name):
+        parser = super(ServiceList, self).get_parser(prog_name)
+        parser.add_argument('cluster_id')
+        return parser
+
+    def take_action(self, parsed_args):
+        cluster_id = parsed_args.cluster_id
+        columns = ('Service ID', 'Service Name', 'Host ID', 'Version')
+        request_str = 'http://{}:{}/clusters/{}/services'.format(host,
+                                                                 port,
+                                                                 cluster_id)
+        data = requests.get(request_str)
+        output = ()
+        if data.status_code == 200:
+            output = ((service['id'],
+                       service['name'],
+                       service['host_id'],
+                       service['version']) for service in data.json())
+        else:
+            _print_error_msg(data)
+        return (columns, output)
+
+
 def main(argv=sys.argv[1:]):
     myapp = KostyorApp()
     return myapp.run(argv)

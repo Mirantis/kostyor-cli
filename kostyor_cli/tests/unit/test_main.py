@@ -166,3 +166,51 @@ class ListUpgradeVersionsTestCase(CLIBaseTestCase):
         self.app.run(self.command)
         requests.get.assert_called_once_with(self.expected_request_str)
         self.assertEqual(False, main._print_error_msg.called)
+
+
+class HostListTestCase(CLIBaseTestCase):
+    def setUp(self):
+        super(HostListTestCase, self).setUp()
+        self.command = ['host-list', '1234']
+        self.expected_request_str = 'http://1.1.1.1:22/clusters/1234/hosts'
+
+    @mock.patch('requests.get')
+    def test_host_list__existing_cluster__correct_request(self,
+                                                          mocked_get):
+        self.resp.status_code = 200
+        mocked_get.return_value = self.resp
+        self.app.run(self.command)
+        mocked_get.assert_called_once_with(self.expected_request_str)
+        self.assertFalse(main._print_error_msg.called)
+
+    @mock.patch('requests.get')
+    def test_host_list__error_server_resp__print_error_msg(self,
+                                                           mocked_get):
+        mocked_get.return_value = self.resp
+        self.app.run(self.command)
+        mocked_get.assert_called_once_with(self.expected_request_str)
+        main._print_error_msg.assert_called_once_with(self.resp)
+
+
+class ServiceListTestCase(CLIBaseTestCase):
+    def setUp(self):
+        super(ServiceListTestCase, self).setUp()
+        self.command = ['service-list', '1234']
+        self.expected_request_str = 'http://1.1.1.1:22/clusters/1234/services'
+
+    @mock.patch('requests.get')
+    def test_service_list__existing_cluster__correct_request(self,
+                                                             mocked_get):
+        self.resp.status_code = 200
+        mocked_get.return_value = self.resp
+        self.app.run(self.command)
+        mocked_get.assert_called_once_with(self.expected_request_str)
+        self.assertFalse(main._print_error_msg.called)
+
+    @mock.patch('requests.get')
+    def test_service_list__error_server_resp__print_error_msg(self,
+                                                              mocked_get):
+        mocked_get.return_value = self.resp
+        self.app.run(self.command)
+        mocked_get.assert_called_once_with(self.expected_request_str)
+        main._print_error_msg.assert_called_once_with(self.resp)
