@@ -71,7 +71,7 @@ class ClusterDiscoveryTestCase(CLIBaseTestCase):
         requests.post.assert_called_once_with(
             self.expected_request_str,
             data=self.expected_request_params)
-        self.assertEqual(False, main._print_error_msg.called)
+        self.assertFalse(main._print_error_msg.called)
 
     def test_discover_cluster__error_server_resp__print_error_msg(self):
         self.expected_request_params['method'] = 'fake-method'
@@ -103,7 +103,7 @@ class ClusterStatusTestCase(CLIBaseTestCase):
         self.resp.status_code = 200
         self.app.run(self.command)
         requests.get.assert_called_once_with(self.expected_request_str)
-        self.assertEqual(False, main._print_error_msg.called)
+        self.assertFalse(main._print_error_msg.called)
 
     def test_cluster_status__error_resp__print_error_msg(self):
         self.app.run(self.command)
@@ -126,7 +126,7 @@ class ClusterUpgradeTestCase(CLIBaseTestCase):
         self.app.run(self.command)
         requests.post.assert_called_once_with(self.expected_request_str,
                                               data=self.expected_params)
-        self.assertEqual(False, main._print_error_msg.called)
+        self.assertFalse(main._print_error_msg.called)
 
     def test_upgrade_cluster__error_server_resp__print_error_msg(self):
         self.app.run(self.command)
@@ -147,7 +147,7 @@ class CheckUpgradeTestCase(CLIBaseTestCase):
         self.resp.status_code = 200
         self.app.run(self.command)
         requests.get.assert_called_once_with(self.expected_request_str)
-        self.assertEqual(False, main._print_error_msg.called)
+        self.assertFalse(main._print_error_msg.called)
 
     def test_check_upgrade__error_server_resp__print_error_msg(self):
         self.app.run(self.command)
@@ -165,7 +165,7 @@ class ListUpgradeVersionsTestCase(CLIBaseTestCase):
         requests.get = mock.Mock(return_value=self.resp)
         self.app.run(self.command)
         requests.get.assert_called_once_with(self.expected_request_str)
-        self.assertEqual(False, main._print_error_msg.called)
+        self.assertFalse(main._print_error_msg.called)
 
 
 class HostListTestCase(CLIBaseTestCase):
