@@ -36,13 +36,14 @@ def _print_error_msg(resp):
 
 
 class KostyorApp(App):
+
     def __init__(self):
         super(KostyorApp, self).__init__(
             description='Kostyor cli app',
             version='0.1',
             command_manager=CommandManager('kostyor.cli'),
             deferred_help=True,
-            )
+        )
 
         # There are two reasons why using session is a good idea here. The
         # first one is, session uses a pool with keep-alive connections so
@@ -61,8 +62,12 @@ class KostyorApp(App):
 
     def clean_up(self, cmd, result, err):
         self.LOG.debug('clean_up %s', cmd.__class__.__name__)
+
         if err:
             self.LOG.debug('got an error: %s', err)
+
+            if isinstance(err, requests.HTTPError):
+                _print_error_msg(err.response)
 
 
 class ClusterDiscovery(ShowOne):
@@ -186,87 +191,6 @@ class ClusterUpgrade(ShowOne):
         r = _make_request_with_cluster_id('post', 'upgrade-cluster',
                                           cluster_id)
         if r.status_code != 201:
-            message = r.json()['message']
-            raise Exception(message)
-        ClusterStatus.get_status(cluster_id)
-
-
-class UpgradeStatus(Lister):
-    description = "Returns the status of a running upgrade"
-    action = "upgrade-status"
-
-    def get_parser(self, prog_name):
-        parser = super(UpgradeStatus, self).get_parser(prog_name)
-        parser.add_argument('upgrade_id')
-        return parser
-
-    def take_action(self, parsed_args):
-        upgrade_id = parsed_args.upgrade_id
-
-        res = _make_request_with_cluster_id('get', self.action, upgrade_id)
-
-        columns = ('Service', 'Version', 'Count')
-
-        return (columns, res)
-
-    def get_status(upgrade_id):
-        r = _make_request_with_cluster_id('get', 'upgrade-status', upgrade_id)
-        if r.status_code != 200:
-            message = r.json()['message']
-            raise Exception('Failed to get upgrade status: %s' % message)
-        result = r.json()
-        return result
-
-
-class PauseUpgrade(Command):
-    description = ("Pauses running upgrade, so that it can be continued, so "
-                   "that it can be continued and aborted")
-    action = "upgrade-pause"
-
-    def pause(cluster_id):
-        r = _make_request_with_cluster_id('put', 'upgrade-pause', cluster_id)
-        if r.status_code != 200:
-            message = r.json()['message']
-            raise Exception(message)
-        ClusterStatus.get_status(cluster_id)
-
-
-class RollbackUpgrade(Command):
-    description = ("Rollbacks running or paused upgrade, attempting to move "
-                   "all the components on all cluster nodes to it's initial "
-                   " versions")
-    action = "upgrade-rollback"
-
-    def rollback(cluster_id):
-        r = _make_request_with_cluster_id('put', 'upgrade-rollback',
-                                          cluster_id)
-        if r.status_code != 200:
-            message = r.json()['message']
-            raise Exception(message)
-        ClusterStatus.get_status(cluster_id)
-
-
-class CancelUpgrade(Command):
-    description = ("Cancels running or paused upgrade. All the currently "
-                   "running upgrades procedures will be finished")
-    action = "upgrade-cancel"
-
-    def cancel(cluster_id):
-        r = _make_request_with_cluster_id('put', 'upgrade-cancel', cluster_id)
-        if r.status_code != 200:
-            message = r.json()['message']
-            raise Exception(message)
-        ClusterStatus.get_status(cluster_id)
-
-
-class ContinueUpgrade(Command):
-    description = "Continues paused upgrade"
-    action = "upgrade-continue"
-
-    def continue_upgrade(cluster_id):
-        r = _make_request_with_cluster_id('put', 'upgrade-continue',
-                                          cluster_id)
-        if r.status_code != 200:
             message = r.json()['message']
             raise Exception(message)
         ClusterStatus.get_status(cluster_id)

@@ -57,10 +57,16 @@ setup(
             'discover-cluster = kostyor_cli.main:ClusterDiscovery',
             'list-upgrade-versions = kostyor_cli.main:ListUpgradeVersions',
             'list-discovery-methods = kostyor_cli.main:ListDiscoveryMethods',
-            'upgrade-status = kostyor_cli.main:UpgradeStatus',
-            'upgrade-cluster = kostyor_cli.main:ClusterUpgrade',
             'host-list = kostyor_cli.main:HostList',
             'service-list = kostyor_cli.main:ServiceList',
+
+            'upgrade-list = kostyor_cli.commands:UpgradeList',
+            'upgrade-show = kostyor_cli.commands:UpgradeShow',
+            'upgrade-start = kostyor_cli.commands:UpgradeStart',
+            'upgrade-pause = kostyor_cli.commands:UpgradePause',
+            'upgrade-continue = kostyor_cli.commands:UpgradeContinue',
+            'upgrade-rollback = kostyor_cli.commands:UpgradeRollback',
+            'upgrade-cancel = kostyor_cli.commands:UpgradeCancel',
         ],
     },
 
