@@ -1,3 +1,5 @@
+import sys
+
 import mock
 from oslotest import base
 import requests
@@ -5,43 +7,47 @@ import requests
 from kostyor_cli import main
 
 
-class CLIUtilsTestCase(base.BaseTestCase):
-    @mock.patch('kostyor_cli.main.host', '1.1.1.1')
-    @mock.patch('kostyor_cli.main.port', '22')
-    def test__make_request_with_cluster_id__get_request__success(self):
-        requests.GET = mock.Mock()
-        main._make_request_with_cluster_id('GET', 'endpoint',
-                                           'cluster-id')
-        requests.GET.assert_called_once_with(
-            'http://1.1.1.1:22/endpoint/cluster-id')
-
-    def test__make_request_with_cluster_id__wrong_request_method__error(self):
-        self.assertRaises(AttributeError, main._make_request_with_cluster_id,
-                          'SEND', 'endpoint', 'cluster-id')
-
-    @mock.patch('sys.stdout')
-    def test__print_error_msg__http_error_handling__success(self, stdout_mock):
+class PrintErrorMsgTestCase(base.BaseTestCase):
+    @mock.patch('sys.stdout.write', mock.Mock())
+    def test__print_error_msg__http_error_handling__success(self):
         resp = mock.Mock()
         resp.status_code = 400
         resp.json = mock.Mock(return_value={'message': 'Bad request'})
-        stdout_mock.write = mock.Mock()
         main._print_error_msg(resp)
-        stdout_mock.write.assert_any_call('HTTP 400: Bad request')
+        sys.stdout.write.assert_any_call('HTTP 400: Bad request')
 
 
 class CLIBaseTestCase(base.BaseTestCase):
     def setUp(self):
         super(CLIBaseTestCase, self).setUp()
-        host_patcher = mock.patch('kostyor_cli.main.host', '1.1.1.1')
-        port_patcher = mock.patch('kostyor_cli.main.port', '22')
-        for patcher in [host_patcher, port_patcher]:
-            patcher.start()
-            self.addCleanup(patcher.stop)
-        main._print_error_msg = mock.Mock()
         self.resp = mock.Mock()
         self.resp.status_code = 404
-        self.resp.json = mock.Mock()
+        self.resp.json = mock.MagicMock()
         self.app = main.KostyorApp()
+
+        host_patcher = mock.patch('kostyor_cli.main.host', '1.1.1.1')
+        port_patcher = mock.patch('kostyor_cli.main.port', '22')
+        stdout_patcher = mock.patch('sys.stdout.write')
+        print_msg_patcher = mock.patch('kostyor_cli.main._print_error_msg')
+        post_patcher = mock.patch('requests.post',
+                                  mock.Mock(return_value=self.resp))
+        get_patcher = mock.patch('requests.get',
+                                 mock.Mock(return_value=self.resp))
+        for patcher in [host_patcher, port_patcher, stdout_patcher,
+                        print_msg_patcher, post_patcher, get_patcher]:
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+
+class MakeRequestTestCase(CLIBaseTestCase):
+    def test__make_request_with_cluster_id__get_request__success(self):
+        main._make_request_with_cluster_id('get', 'endpoint', 'cluster-id')
+        requests.get.assert_called_once_with(
+            'http://1.1.1.1:22/endpoint/cluster-id')
+
+    def test__make_request_with_cluster_id__wrong_request_method__error(self):
+        self.assertRaises(AttributeError, main._make_request_with_cluster_id,
+                          'send', 'endpoint', 'cluster-id')
 
 
 class ClusterDiscoveryTestCase(CLIBaseTestCase):
@@ -63,7 +69,6 @@ class ClusterDiscoveryTestCase(CLIBaseTestCase):
                         '--username=admin',
                         '--tenant-name=admin',
                         '--password=qwerty']
-        requests.post = mock.Mock(return_value=self.resp)
 
     def test_discover_cluster__expected_args__correct_request(self):
         self.resp.status_code = 201
@@ -84,8 +89,8 @@ class ClusterDiscoveryTestCase(CLIBaseTestCase):
 
 
 class ClusterListTestCase(CLIBaseTestCase):
+    @mock.patch('requests.get', mock.MagicMock())
     def test_cluster_list__run_without_args__correct_request(self):
-        requests.get = mock.Mock()
         expected_request_str = 'http://1.1.1.1:22/clusters'
         command = ['cluster-list', ]
         self.app.run(command)
@@ -97,7 +102,6 @@ class ClusterStatusTestCase(CLIBaseTestCase):
         super(ClusterStatusTestCase, self).setUp()
         self.expected_request_str = 'http://1.1.1.1:22/clusters/1234'
         self.command = ['cluster-status', '1234']
-        requests.get = mock.Mock(return_value=self.resp)
 
     def test_cluster_status__expected_args__correct_request(self):
         self.resp.status_code = 200
@@ -119,7 +123,6 @@ class ClusterUpgradeTestCase(CLIBaseTestCase):
         self.command = ['upgrade-cluster',
                         '1234',
                         'mitaka']
-        requests.post = mock.Mock(return_value=self.resp)
 
     def test_upgrade_cluster__expected_args__correct_request(self):
         self.resp.status_code = 201
@@ -141,7 +144,6 @@ class CheckUpgradeTestCase(CLIBaseTestCase):
         self.expected_request_str = 'http://1.1.1.1:22/upgrade-versions/1234'
         self.command = ['check-upgrade',
                         '1234']
-        requests.get = mock.Mock(return_value=self.resp)
 
     def test_check_upgrade__expected_args__correct_request(self):
         self.resp.status_code = 200
@@ -162,7 +164,6 @@ class ListUpgradeVersionsTestCase(CLIBaseTestCase):
         self.command = ['list-upgrade-versions']
 
     def test_list_upgrade__run_without_args__correct_request(self):
-        requests.get = mock.Mock(return_value=self.resp)
         self.app.run(self.command)
         requests.get.assert_called_once_with(self.expected_request_str)
         self.assertFalse(main._print_error_msg.called)
@@ -174,21 +175,16 @@ class HostListTestCase(CLIBaseTestCase):
         self.command = ['host-list', '1234']
         self.expected_request_str = 'http://1.1.1.1:22/clusters/1234/hosts'
 
-    @mock.patch('requests.get')
-    def test_host_list__existing_cluster__correct_request(self,
-                                                          mocked_get):
+    def test_host_list__existing_cluster__correct_request(self):
         self.resp.status_code = 200
-        mocked_get.return_value = self.resp
         self.app.run(self.command)
-        mocked_get.assert_called_once_with(self.expected_request_str)
+        requests.get.assert_called_once_with(self.expected_request_str)
         self.assertFalse(main._print_error_msg.called)
 
-    @mock.patch('requests.get')
-    def test_host_list__error_server_resp__print_error_msg(self,
-                                                           mocked_get):
-        mocked_get.return_value = self.resp
+    def test_host_list__error_server_resp__print_error_msg(self):
+        requests.get.return_value = self.resp
         self.app.run(self.command)
-        mocked_get.assert_called_once_with(self.expected_request_str)
+        requests.get.assert_called_once_with(self.expected_request_str)
         main._print_error_msg.assert_called_once_with(self.resp)
 
 
@@ -198,19 +194,13 @@ class ServiceListTestCase(CLIBaseTestCase):
         self.command = ['service-list', '1234']
         self.expected_request_str = 'http://1.1.1.1:22/clusters/1234/services'
 
-    @mock.patch('requests.get')
-    def test_service_list__existing_cluster__correct_request(self,
-                                                             mocked_get):
+    def test_service_list__existing_cluster__correct_request(self):
         self.resp.status_code = 200
-        mocked_get.return_value = self.resp
         self.app.run(self.command)
-        mocked_get.assert_called_once_with(self.expected_request_str)
+        requests.get.assert_called_once_with(self.expected_request_str)
         self.assertFalse(main._print_error_msg.called)
 
-    @mock.patch('requests.get')
-    def test_service_list__error_server_resp__print_error_msg(self,
-                                                              mocked_get):
-        mocked_get.return_value = self.resp
+    def test_service_list__error_server_resp__print_error_msg(self):
         self.app.run(self.command)
-        mocked_get.assert_called_once_with(self.expected_request_str)
+        requests.get.assert_called_once_with(self.expected_request_str)
         main._print_error_msg.assert_called_once_with(self.resp)
