@@ -33,7 +33,6 @@ class CLIBaseTestCase(base.BaseTestCase):
         self.resp = mock.Mock()
         self.resp.status_code = 404
         self.resp.json = mock.MagicMock()
-        self.app = main.KostyorApp()
 
         host_patcher = mock.patch('kostyor_cli.main.host', '1.1.1.1')
         port_patcher = mock.patch('kostyor_cli.main.port', '22')
@@ -48,6 +47,7 @@ class CLIBaseTestCase(base.BaseTestCase):
             patcher.start()
             self.addCleanup(patcher.stop)
 
+        self.app = main.KostyorApp()
         self.app.request = mock.Mock()
         self.app.request.post = mock.Mock(return_value=self.resp)
         self.app.request.put = mock.Mock(return_value=self.resp)

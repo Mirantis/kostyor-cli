@@ -51,6 +51,7 @@ class KostyorApp(App):
         # setup, for example, common headers here and do not pass them
         # across the code.
         self.request = requests.Session()
+        self.baseurl = 'http://{0}:{1}'.format(host, port)
 
     def initialize_app(self, argv):
         self.LOG.debug('initialize_app')
@@ -88,7 +89,7 @@ class ClusterDiscovery(ShowOne):
             'password': parsed_args.password,
         }
 
-        request_str = 'http://{}:{}/discover-cluster'.format(host, port)
+        request_str = '{0}/discover-cluster'.format(self.app.baseurl)
         data = self.app.request.post(request_str,
                                      data=request_params)
         output = ()
@@ -109,7 +110,7 @@ class ClusterDiscovery(ShowOne):
 class ClusterList(Lister):
     def take_action(self, parsed_args):
         columns = ('Cluster Name', 'Cluster ID', 'Status')
-        data = self.app.request.get('http://{}:{}/clusters'.format(host, port))
+        data = self.app.request.get('{0}/clusters'.format(self.app.baseurl))
         clusters = data.json()['clusters']
         output = ((i['name'], i['id'], i['status']) for i in clusters)
 
@@ -133,7 +134,7 @@ class ClusterStatus(ShowOne):
         columns = ('Cluster ID', 'Cluster Name', 'OpenStack Version',
                    'Status',)
         data = self.app.request.get(
-            'http://{}:{}/{}/{}'.format(host, port, self.action, cluster_id))
+            '{}/{}/{}'.format(self.app.baseurl, self.action, cluster_id))
         output = ()
         if data.status_code == 200:
             data = data.json()
@@ -168,9 +169,8 @@ class ClusterUpgrade(ShowOne):
         cluster_id = parsed_args.cluster_id
         to_version = parsed_args.to_version
         columns = ('Cluster ID', 'Upgrade Status',)
-        request_str = 'http://{}:{}/upgrade-cluster/{}'.format(host,
-                                                               port,
-                                                               cluster_id)
+        request_str = '{}/upgrade-cluster/{}'.format(self.app.baseurl,
+                                                     cluster_id)
         data = self.app.request.post(request_str,
                                      data={'version': to_version})
         output = ()
@@ -296,7 +296,7 @@ class ListUpgradeVersions(Lister):
     def take_action(self, parsed_args):
         columns = ('From Version', 'To Version',)
         data = self.app.request.get(
-            'http://{}:{}/list-upgrade-versions'.format(host, port)).json()
+            '{}/list-upgrade-versions'.format(self.app.baseurl)).json()
         data = [i.capitalize() for i in data]
         versions = ((data[i], data[i+1])
                     for i in six.moves.range(len(data) - 1))
@@ -325,9 +325,8 @@ class CheckUpgrade(Lister):
     def take_action(self, parsed_args):
         cluster_id = parsed_args.cluster_id
         columns = ('Available Upgrade Versions',)
-        request_str = 'http://{}:{}/upgrade-versions/{}'.format(host,
-                                                                port,
-                                                                cluster_id)
+        request_str = '{}/upgrade-versions/{}'.format(self.app.baseurl,
+                                                      cluster_id)
         data = self.app.request.get(request_str)
         output = ()
         if data.status_code == 200:
@@ -377,9 +376,8 @@ class HostList(Lister):
     def take_action(self, parsed_args):
         cluster_id = parsed_args.cluster_id
         columns = ('Host ID', 'Host Name')
-        request_str = 'http://{}:{}/clusters/{}/hosts'.format(host,
-                                                              port,
-                                                              cluster_id)
+        request_str = '{}/clusters/{}/hosts'.format(self.app.baseurl,
+                                                    cluster_id)
         data = self.app.request.get(request_str)
         output = ()
         if data.status_code == 200:
@@ -400,9 +398,8 @@ class ServiceList(Lister):
     def take_action(self, parsed_args):
         cluster_id = parsed_args.cluster_id
         columns = ('Service ID', 'Service Name', 'Host ID', 'Version')
-        request_str = 'http://{}:{}/clusters/{}/services'.format(host,
-                                                                 port,
-                                                                 cluster_id)
+        request_str = '{}/clusters/{}/services'.format(self.app.baseurl,
+                                                       cluster_id)
         data = self.app.request.get(request_str)
         output = ()
         if data.status_code == 200:
