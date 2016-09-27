@@ -6,37 +6,27 @@ import requests
 
 from kostyor_cli import main
 
+from . import CLIBaseTestCase
+
 
 class PrintErrorMsgTestCase(base.BaseTestCase):
+
     @mock.patch('sys.stdout.write', mock.Mock())
-    def test__print_error_msg__http_error_handling__success(self):
+    def test__print_error_msg__http_error_handling__success_json(self):
         resp = mock.Mock()
         resp.status_code = 400
         resp.json = mock.Mock(return_value={'message': 'Bad request'})
         main._print_error_msg(resp)
         sys.stdout.write.assert_any_call('HTTP 400: Bad request')
 
-
-class CLIBaseTestCase(base.BaseTestCase):
-    def setUp(self):
-        super(CLIBaseTestCase, self).setUp()
-        self.resp = mock.Mock()
-        self.resp.status_code = 404
-        self.resp.json = mock.MagicMock()
-        self.app = main.KostyorApp()
-
-        host_patcher = mock.patch('kostyor_cli.main.host', '1.1.1.1')
-        port_patcher = mock.patch('kostyor_cli.main.port', '22')
-        stdout_patcher = mock.patch('sys.stdout.write')
-        print_msg_patcher = mock.patch('kostyor_cli.main._print_error_msg')
-        post_patcher = mock.patch('requests.post',
-                                  mock.Mock(return_value=self.resp))
-        get_patcher = mock.patch('requests.get',
-                                 mock.Mock(return_value=self.resp))
-        for patcher in [host_patcher, port_patcher, stdout_patcher,
-                        print_msg_patcher, post_patcher, get_patcher]:
-            patcher.start()
-            self.addCleanup(patcher.stop)
+    @mock.patch('sys.stdout.write', mock.Mock())
+    def test__print_error_msg__http_error_handling__success_plain(self):
+        resp = mock.Mock()
+        resp.status_code = 400
+        resp.json = mock.Mock(side_effect=ValueError('invalid json'))
+        resp.text = 'Bad request'
+        main._print_error_msg(resp)
+        sys.stdout.write.assert_any_call('HTTP 400: Bad request')
 
 
 class MakeRequestTestCase(CLIBaseTestCase):
@@ -73,7 +63,7 @@ class ClusterDiscoveryTestCase(CLIBaseTestCase):
     def test_discover_cluster__expected_args__correct_request(self):
         self.resp.status_code = 201
         self.app.run(self.command)
-        requests.post.assert_called_once_with(
+        self.app.request.post.assert_called_once_with(
             self.expected_request_str,
             data=self.expected_request_params)
         self.assertFalse(main._print_error_msg.called)
@@ -82,7 +72,7 @@ class ClusterDiscoveryTestCase(CLIBaseTestCase):
         self.expected_request_params['method'] = 'fake-method'
         self.command[1] = 'fake-method'
         self.app.run(self.command)
-        requests.post.assert_called_once_with(
+        self.app.request.post.assert_called_once_with(
             self.expected_request_str,
             data=self.expected_request_params)
         main._print_error_msg.assert_called_once_with(self.resp)
@@ -94,7 +84,7 @@ class ClusterListTestCase(CLIBaseTestCase):
         expected_request_str = 'http://1.1.1.1:22/clusters'
         command = ['cluster-list', ]
         self.app.run(command)
-        requests.get.assert_called_once_with(expected_request_str)
+        self.app.request.get.assert_called_once_with(expected_request_str)
 
 
 class ClusterStatusTestCase(CLIBaseTestCase):
@@ -106,35 +96,16 @@ class ClusterStatusTestCase(CLIBaseTestCase):
     def test_cluster_status__expected_args__correct_request(self):
         self.resp.status_code = 200
         self.app.run(self.command)
-        requests.get.assert_called_once_with(self.expected_request_str)
+        self.app.request.get.assert_called_once_with(
+            self.expected_request_str
+        )
         self.assertFalse(main._print_error_msg.called)
 
     def test_cluster_status__error_resp__print_error_msg(self):
         self.app.run(self.command)
-        requests.get.assert_called_once_with(self.expected_request_str)
-        main._print_error_msg.assert_called_once_with(self.resp)
-
-
-class ClusterUpgradeTestCase(CLIBaseTestCase):
-    def setUp(self):
-        super(ClusterUpgradeTestCase, self).setUp()
-        self.expected_params = {'version': 'mitaka'}
-        self.expected_request_str = 'http://1.1.1.1:22/upgrade-cluster/1234'
-        self.command = ['upgrade-cluster',
-                        '1234',
-                        'mitaka']
-
-    def test_upgrade_cluster__expected_args__correct_request(self):
-        self.resp.status_code = 201
-        self.app.run(self.command)
-        requests.post.assert_called_once_with(self.expected_request_str,
-                                              data=self.expected_params)
-        self.assertFalse(main._print_error_msg.called)
-
-    def test_upgrade_cluster__error_server_resp__print_error_msg(self):
-        self.app.run(self.command)
-        requests.post.assert_called_once_with(self.expected_request_str,
-                                              data=self.expected_params)
+        self.app.request.get.assert_called_once_with(
+            self.expected_request_str
+        )
         main._print_error_msg.assert_called_once_with(self.resp)
 
 
@@ -148,12 +119,12 @@ class CheckUpgradeTestCase(CLIBaseTestCase):
     def test_check_upgrade__expected_args__correct_request(self):
         self.resp.status_code = 200
         self.app.run(self.command)
-        requests.get.assert_called_once_with(self.expected_request_str)
+        self.app.request.get.assert_called_once_with(self.expected_request_str)
         self.assertFalse(main._print_error_msg.called)
 
     def test_check_upgrade__error_server_resp__print_error_msg(self):
         self.app.run(self.command)
-        requests.get.assert_called_once_with(self.expected_request_str)
+        self.app.request.get.assert_called_once_with(self.expected_request_str)
         main._print_error_msg.assert_called_once_with(self.resp)
 
 
@@ -165,7 +136,7 @@ class ListUpgradeVersionsTestCase(CLIBaseTestCase):
 
     def test_list_upgrade__run_without_args__correct_request(self):
         self.app.run(self.command)
-        requests.get.assert_called_once_with(self.expected_request_str)
+        self.app.request.get.assert_called_once_with(self.expected_request_str)
         self.assertFalse(main._print_error_msg.called)
 
 
@@ -178,13 +149,13 @@ class HostListTestCase(CLIBaseTestCase):
     def test_host_list__existing_cluster__correct_request(self):
         self.resp.status_code = 200
         self.app.run(self.command)
-        requests.get.assert_called_once_with(self.expected_request_str)
+        self.app.request.get.assert_called_once_with(self.expected_request_str)
         self.assertFalse(main._print_error_msg.called)
 
     def test_host_list__error_server_resp__print_error_msg(self):
         requests.get.return_value = self.resp
         self.app.run(self.command)
-        requests.get.assert_called_once_with(self.expected_request_str)
+        self.app.request.get.assert_called_once_with(self.expected_request_str)
         main._print_error_msg.assert_called_once_with(self.resp)
 
 
@@ -197,10 +168,10 @@ class ServiceListTestCase(CLIBaseTestCase):
     def test_service_list__existing_cluster__correct_request(self):
         self.resp.status_code = 200
         self.app.run(self.command)
-        requests.get.assert_called_once_with(self.expected_request_str)
+        self.app.request.get.assert_called_once_with(self.expected_request_str)
         self.assertFalse(main._print_error_msg.called)
 
     def test_service_list__error_server_resp__print_error_msg(self):
         self.app.run(self.command)
-        requests.get.assert_called_once_with(self.expected_request_str)
+        self.app.request.get.assert_called_once_with(self.expected_request_str)
         main._print_error_msg.assert_called_once_with(self.resp)

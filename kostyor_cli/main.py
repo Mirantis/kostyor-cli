@@ -26,18 +26,33 @@ def _make_request_with_cluster_id(http_method, endpoint, cluster_id):
 
 
 def _print_error_msg(resp):
-    message = resp.json()['message']
+    try:
+        message = resp.json()['message']
+    except (ValueError, KeyError):
+        # if response doesn't contain valid error representation
+        # just print its content
+        message = resp.text
     print('HTTP {}: {}'.format(resp.status_code, message))
 
 
 class KostyorApp(App):
+
     def __init__(self):
         super(KostyorApp, self).__init__(
             description='Kostyor cli app',
             version='0.1',
             command_manager=CommandManager('kostyor.cli'),
             deferred_help=True,
-            )
+        )
+
+        # There are two reasons why using session is a good idea here. The
+        # first one is, session uses a pool with keep-alive connections so
+        # any further requests to the same domain won't initiate a new
+        # connection. The second reason is, it's configurable so we can
+        # setup, for example, common headers here and do not pass them
+        # across the code.
+        self.request = requests.Session()
+        self.baseurl = 'http://{0}:{1}'.format(host, port)
 
     def initialize_app(self, argv):
         self.LOG.debug('initialize_app')
@@ -47,8 +62,12 @@ class KostyorApp(App):
 
     def clean_up(self, cmd, result, err):
         self.LOG.debug('clean_up %s', cmd.__class__.__name__)
+
         if err:
             self.LOG.debug('got an error: %s', err)
+
+            if isinstance(err, requests.HTTPError):
+                _print_error_msg(err.response)
 
 
 class ClusterDiscovery(ShowOne):
@@ -75,9 +94,9 @@ class ClusterDiscovery(ShowOne):
             'password': parsed_args.password,
         }
 
-        request_str = 'http://{}:{}/discover-cluster'.format(host, port)
-        data = requests.post(request_str,
-                             data=request_params)
+        request_str = '{0}/discover-cluster'.format(self.app.baseurl)
+        data = self.app.request.post(request_str,
+                                     data=request_params)
         output = ()
         if data.status_code == 201:
             data = data.json()
@@ -96,7 +115,7 @@ class ClusterDiscovery(ShowOne):
 class ClusterList(Lister):
     def take_action(self, parsed_args):
         columns = ('Cluster Name', 'Cluster ID', 'Status')
-        data = requests.get('http://{}:{}/clusters'.format(host, port))
+        data = self.app.request.get('{0}/clusters'.format(self.app.baseurl))
         clusters = data.json()['clusters']
         output = ((i['name'], i['id'], i['status']) for i in clusters)
 
@@ -119,8 +138,8 @@ class ClusterStatus(ShowOne):
         cluster_id = parsed_args.cluster_id
         columns = ('Cluster ID', 'Cluster Name', 'OpenStack Version',
                    'Status',)
-        data = requests.get(
-            'http://{}:{}/{}/{}'.format(host, port, self.action, cluster_id))
+        data = self.app.request.get(
+            '{}/{}/{}'.format(self.app.baseurl, self.action, cluster_id))
         output = ()
         if data.status_code == 200:
             data = data.json()
@@ -155,11 +174,10 @@ class ClusterUpgrade(ShowOne):
         cluster_id = parsed_args.cluster_id
         to_version = parsed_args.to_version
         columns = ('Cluster ID', 'Upgrade Status',)
-        request_str = 'http://{}:{}/upgrade-cluster/{}'.format(host,
-                                                               port,
-                                                               cluster_id)
-        data = requests.post(request_str,
-                             data={'version': to_version})
+        request_str = '{}/upgrade-cluster/{}'.format(self.app.baseurl,
+                                                     cluster_id)
+        data = self.app.request.post(request_str,
+                                     data={'version': to_version})
         output = ()
         if data.status_code == 201:
             data = data.json()
@@ -173,87 +191,6 @@ class ClusterUpgrade(ShowOne):
         r = _make_request_with_cluster_id('post', 'upgrade-cluster',
                                           cluster_id)
         if r.status_code != 201:
-            message = r.json()['message']
-            raise Exception(message)
-        ClusterStatus.get_status(cluster_id)
-
-
-class UpgradeStatus(Lister):
-    description = "Returns the status of a running upgrade"
-    action = "upgrade-status"
-
-    def get_parser(self, prog_name):
-        parser = super(UpgradeStatus, self).get_parser(prog_name)
-        parser.add_argument('upgrade_id')
-        return parser
-
-    def take_action(self, parsed_args):
-        upgrade_id = parsed_args.upgrade_id
-
-        res = _make_request_with_cluster_id('get', self.action, upgrade_id)
-
-        columns = ('Service', 'Version', 'Count')
-
-        return (columns, res)
-
-    def get_status(upgrade_id):
-        r = _make_request_with_cluster_id('get', 'upgrade-status', upgrade_id)
-        if r.status_code != 200:
-            message = r.json()['message']
-            raise Exception('Failed to get upgrade status: %s' % message)
-        result = r.json()
-        return result
-
-
-class PauseUpgrade(Command):
-    description = ("Pauses running upgrade, so that it can be continued, so "
-                   "that it can be continued and aborted")
-    action = "upgrade-pause"
-
-    def pause(cluster_id):
-        r = _make_request_with_cluster_id('put', 'upgrade-pause', cluster_id)
-        if r.status_code != 200:
-            message = r.json()['message']
-            raise Exception(message)
-        ClusterStatus.get_status(cluster_id)
-
-
-class RollbackUpgrade(Command):
-    description = ("Rollbacks running or paused upgrade, attempting to move "
-                   "all the components on all cluster nodes to it's initial "
-                   " versions")
-    action = "upgrade-rollback"
-
-    def rollback(cluster_id):
-        r = _make_request_with_cluster_id('put', 'upgrade-rollback',
-                                          cluster_id)
-        if r.status_code != 200:
-            message = r.json()['message']
-            raise Exception(message)
-        ClusterStatus.get_status(cluster_id)
-
-
-class CancelUpgrade(Command):
-    description = ("Cancels running or paused upgrade. All the currently "
-                   "running upgrades procedures will be finished")
-    action = "upgrade-cancel"
-
-    def cancel(cluster_id):
-        r = _make_request_with_cluster_id('put', 'upgrade-cancel', cluster_id)
-        if r.status_code != 200:
-            message = r.json()['message']
-            raise Exception(message)
-        ClusterStatus.get_status(cluster_id)
-
-
-class ContinueUpgrade(Command):
-    description = "Continues paused upgrade"
-    action = "upgrade-continue"
-
-    def continue_upgrade(cluster_id):
-        r = _make_request_with_cluster_id('put', 'upgrade-continue',
-                                          cluster_id)
-        if r.status_code != 200:
             message = r.json()['message']
             raise Exception(message)
         ClusterStatus.get_status(cluster_id)
@@ -282,8 +219,8 @@ class ListUpgradeVersions(Lister):
 
     def take_action(self, parsed_args):
         columns = ('From Version', 'To Version',)
-        data = requests.get(
-            'http://{}:{}/list-upgrade-versions'.format(host, port)).json()
+        data = self.app.request.get(
+            '{}/list-upgrade-versions'.format(self.app.baseurl)).json()
         data = [i.capitalize() for i in data]
         versions = ((data[i], data[i+1])
                     for i in six.moves.range(len(data) - 1))
@@ -312,10 +249,9 @@ class CheckUpgrade(Lister):
     def take_action(self, parsed_args):
         cluster_id = parsed_args.cluster_id
         columns = ('Available Upgrade Versions',)
-        request_str = 'http://{}:{}/upgrade-versions/{}'.format(host,
-                                                                port,
-                                                                cluster_id)
-        data = requests.get(request_str)
+        request_str = '{}/upgrade-versions/{}'.format(self.app.baseurl,
+                                                      cluster_id)
+        data = self.app.request.get(request_str)
         output = ()
         if data.status_code == 200:
             output = ((i.capitalize(),) for i in data.json())
@@ -364,10 +300,9 @@ class HostList(Lister):
     def take_action(self, parsed_args):
         cluster_id = parsed_args.cluster_id
         columns = ('Host ID', 'Host Name')
-        request_str = 'http://{}:{}/clusters/{}/hosts'.format(host,
-                                                              port,
-                                                              cluster_id)
-        data = requests.get(request_str)
+        request_str = '{}/clusters/{}/hosts'.format(self.app.baseurl,
+                                                    cluster_id)
+        data = self.app.request.get(request_str)
         output = ()
         if data.status_code == 200:
             output = ((host['id'], host['hostname']) for host in data.json())
@@ -387,10 +322,9 @@ class ServiceList(Lister):
     def take_action(self, parsed_args):
         cluster_id = parsed_args.cluster_id
         columns = ('Service ID', 'Service Name', 'Host ID', 'Version')
-        request_str = 'http://{}:{}/clusters/{}/services'.format(host,
-                                                                 port,
-                                                                 cluster_id)
-        data = requests.get(request_str)
+        request_str = '{}/clusters/{}/services'.format(self.app.baseurl,
+                                                       cluster_id)
+        data = self.app.request.get(request_str)
         output = ()
         if data.status_code == 200:
             output = ((service['id'],
