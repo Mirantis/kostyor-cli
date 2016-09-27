@@ -44,6 +44,14 @@ class KostyorApp(App):
             deferred_help=True,
             )
 
+        # There are two reasons why using session is a good idea here. The
+        # first one is, session uses a pool with keep-alive connections so
+        # any further requests to the same domain won't initiate a new
+        # connection. The second reason is, it's configurable so we can
+        # setup, for example, common headers here and do not pass them
+        # across the code.
+        self.request = requests.Session()
+
     def initialize_app(self, argv):
         self.LOG.debug('initialize_app')
 
@@ -81,8 +89,8 @@ class ClusterDiscovery(ShowOne):
         }
 
         request_str = 'http://{}:{}/discover-cluster'.format(host, port)
-        data = requests.post(request_str,
-                             data=request_params)
+        data = self.app.request.post(request_str,
+                                     data=request_params)
         output = ()
         if data.status_code == 201:
             data = data.json()
@@ -101,7 +109,7 @@ class ClusterDiscovery(ShowOne):
 class ClusterList(Lister):
     def take_action(self, parsed_args):
         columns = ('Cluster Name', 'Cluster ID', 'Status')
-        data = requests.get('http://{}:{}/clusters'.format(host, port))
+        data = self.app.request.get('http://{}:{}/clusters'.format(host, port))
         clusters = data.json()['clusters']
         output = ((i['name'], i['id'], i['status']) for i in clusters)
 
@@ -124,7 +132,7 @@ class ClusterStatus(ShowOne):
         cluster_id = parsed_args.cluster_id
         columns = ('Cluster ID', 'Cluster Name', 'OpenStack Version',
                    'Status',)
-        data = requests.get(
+        data = self.app.request.get(
             'http://{}:{}/{}/{}'.format(host, port, self.action, cluster_id))
         output = ()
         if data.status_code == 200:
@@ -163,8 +171,8 @@ class ClusterUpgrade(ShowOne):
         request_str = 'http://{}:{}/upgrade-cluster/{}'.format(host,
                                                                port,
                                                                cluster_id)
-        data = requests.post(request_str,
-                             data={'version': to_version})
+        data = self.app.request.post(request_str,
+                                     data={'version': to_version})
         output = ()
         if data.status_code == 201:
             data = data.json()
@@ -287,7 +295,7 @@ class ListUpgradeVersions(Lister):
 
     def take_action(self, parsed_args):
         columns = ('From Version', 'To Version',)
-        data = requests.get(
+        data = self.app.request.get(
             'http://{}:{}/list-upgrade-versions'.format(host, port)).json()
         data = [i.capitalize() for i in data]
         versions = ((data[i], data[i+1])
@@ -320,7 +328,7 @@ class CheckUpgrade(Lister):
         request_str = 'http://{}:{}/upgrade-versions/{}'.format(host,
                                                                 port,
                                                                 cluster_id)
-        data = requests.get(request_str)
+        data = self.app.request.get(request_str)
         output = ()
         if data.status_code == 200:
             output = ((i.capitalize(),) for i in data.json())
@@ -372,7 +380,7 @@ class HostList(Lister):
         request_str = 'http://{}:{}/clusters/{}/hosts'.format(host,
                                                               port,
                                                               cluster_id)
-        data = requests.get(request_str)
+        data = self.app.request.get(request_str)
         output = ()
         if data.status_code == 200:
             output = ((host['id'], host['hostname']) for host in data.json())
@@ -395,7 +403,7 @@ class ServiceList(Lister):
         request_str = 'http://{}:{}/clusters/{}/services'.format(host,
                                                                  port,
                                                                  cluster_id)
-        data = requests.get(request_str)
+        data = self.app.request.get(request_str)
         output = ()
         if data.status_code == 200:
             output = ((service['id'],

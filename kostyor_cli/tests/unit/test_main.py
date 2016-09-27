@@ -48,6 +48,11 @@ class CLIBaseTestCase(base.BaseTestCase):
             patcher.start()
             self.addCleanup(patcher.stop)
 
+        self.app.request = mock.Mock()
+        self.app.request.post = mock.Mock(return_value=self.resp)
+        self.app.request.put = mock.Mock(return_value=self.resp)
+        self.app.request.get = mock.Mock(return_value=self.resp)
+
 
 class MakeRequestTestCase(CLIBaseTestCase):
     def test__make_request_with_cluster_id__get_request__success(self):
@@ -83,7 +88,7 @@ class ClusterDiscoveryTestCase(CLIBaseTestCase):
     def test_discover_cluster__expected_args__correct_request(self):
         self.resp.status_code = 201
         self.app.run(self.command)
-        requests.post.assert_called_once_with(
+        self.app.request.post.assert_called_once_with(
             self.expected_request_str,
             data=self.expected_request_params)
         self.assertFalse(main._print_error_msg.called)
@@ -92,7 +97,7 @@ class ClusterDiscoveryTestCase(CLIBaseTestCase):
         self.expected_request_params['method'] = 'fake-method'
         self.command[1] = 'fake-method'
         self.app.run(self.command)
-        requests.post.assert_called_once_with(
+        self.app.request.post.assert_called_once_with(
             self.expected_request_str,
             data=self.expected_request_params)
         main._print_error_msg.assert_called_once_with(self.resp)
@@ -104,7 +109,7 @@ class ClusterListTestCase(CLIBaseTestCase):
         expected_request_str = 'http://1.1.1.1:22/clusters'
         command = ['cluster-list', ]
         self.app.run(command)
-        requests.get.assert_called_once_with(expected_request_str)
+        self.app.request.get.assert_called_once_with(expected_request_str)
 
 
 class ClusterStatusTestCase(CLIBaseTestCase):
@@ -116,12 +121,16 @@ class ClusterStatusTestCase(CLIBaseTestCase):
     def test_cluster_status__expected_args__correct_request(self):
         self.resp.status_code = 200
         self.app.run(self.command)
-        requests.get.assert_called_once_with(self.expected_request_str)
+        self.app.request.get.assert_called_once_with(
+            self.expected_request_str
+        )
         self.assertFalse(main._print_error_msg.called)
 
     def test_cluster_status__error_resp__print_error_msg(self):
         self.app.run(self.command)
-        requests.get.assert_called_once_with(self.expected_request_str)
+        self.app.request.get.assert_called_once_with(
+            self.expected_request_str
+        )
         main._print_error_msg.assert_called_once_with(self.resp)
 
 
@@ -137,14 +146,18 @@ class ClusterUpgradeTestCase(CLIBaseTestCase):
     def test_upgrade_cluster__expected_args__correct_request(self):
         self.resp.status_code = 201
         self.app.run(self.command)
-        requests.post.assert_called_once_with(self.expected_request_str,
-                                              data=self.expected_params)
+        self.app.request.post.assert_called_once_with(
+            self.expected_request_str,
+            data=self.expected_params
+        )
         self.assertFalse(main._print_error_msg.called)
 
     def test_upgrade_cluster__error_server_resp__print_error_msg(self):
         self.app.run(self.command)
-        requests.post.assert_called_once_with(self.expected_request_str,
-                                              data=self.expected_params)
+        self.app.request.post.assert_called_once_with(
+            self.expected_request_str,
+            data=self.expected_params
+        )
         main._print_error_msg.assert_called_once_with(self.resp)
 
 
@@ -158,12 +171,12 @@ class CheckUpgradeTestCase(CLIBaseTestCase):
     def test_check_upgrade__expected_args__correct_request(self):
         self.resp.status_code = 200
         self.app.run(self.command)
-        requests.get.assert_called_once_with(self.expected_request_str)
+        self.app.request.get.assert_called_once_with(self.expected_request_str)
         self.assertFalse(main._print_error_msg.called)
 
     def test_check_upgrade__error_server_resp__print_error_msg(self):
         self.app.run(self.command)
-        requests.get.assert_called_once_with(self.expected_request_str)
+        self.app.request.get.assert_called_once_with(self.expected_request_str)
         main._print_error_msg.assert_called_once_with(self.resp)
 
 
@@ -175,7 +188,7 @@ class ListUpgradeVersionsTestCase(CLIBaseTestCase):
 
     def test_list_upgrade__run_without_args__correct_request(self):
         self.app.run(self.command)
-        requests.get.assert_called_once_with(self.expected_request_str)
+        self.app.request.get.assert_called_once_with(self.expected_request_str)
         self.assertFalse(main._print_error_msg.called)
 
 
@@ -188,13 +201,13 @@ class HostListTestCase(CLIBaseTestCase):
     def test_host_list__existing_cluster__correct_request(self):
         self.resp.status_code = 200
         self.app.run(self.command)
-        requests.get.assert_called_once_with(self.expected_request_str)
+        self.app.request.get.assert_called_once_with(self.expected_request_str)
         self.assertFalse(main._print_error_msg.called)
 
     def test_host_list__error_server_resp__print_error_msg(self):
         requests.get.return_value = self.resp
         self.app.run(self.command)
-        requests.get.assert_called_once_with(self.expected_request_str)
+        self.app.request.get.assert_called_once_with(self.expected_request_str)
         main._print_error_msg.assert_called_once_with(self.resp)
 
 
@@ -207,10 +220,10 @@ class ServiceListTestCase(CLIBaseTestCase):
     def test_service_list__existing_cluster__correct_request(self):
         self.resp.status_code = 200
         self.app.run(self.command)
-        requests.get.assert_called_once_with(self.expected_request_str)
+        self.app.request.get.assert_called_once_with(self.expected_request_str)
         self.assertFalse(main._print_error_msg.called)
 
     def test_service_list__error_server_resp__print_error_msg(self):
         self.app.run(self.command)
-        requests.get.assert_called_once_with(self.expected_request_str)
+        self.app.request.get.assert_called_once_with(self.expected_request_str)
         main._print_error_msg.assert_called_once_with(self.resp)
