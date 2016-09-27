@@ -8,11 +8,21 @@ from kostyor_cli import main
 
 
 class PrintErrorMsgTestCase(base.BaseTestCase):
+
     @mock.patch('sys.stdout.write', mock.Mock())
-    def test__print_error_msg__http_error_handling__success(self):
+    def test__print_error_msg__http_error_handling__success_json(self):
         resp = mock.Mock()
         resp.status_code = 400
         resp.json = mock.Mock(return_value={'message': 'Bad request'})
+        main._print_error_msg(resp)
+        sys.stdout.write.assert_any_call('HTTP 400: Bad request')
+
+    @mock.patch('sys.stdout.write', mock.Mock())
+    def test__print_error_msg__http_error_handling__success_plain(self):
+        resp = mock.Mock()
+        resp.status_code = 400
+        resp.json = mock.Mock(side_effect=ValueError('invalid json'))
+        resp.text = 'Bad request'
         main._print_error_msg(resp)
         sys.stdout.write.assert_any_call('HTTP 400: Bad request')
 

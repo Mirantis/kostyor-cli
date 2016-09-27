@@ -26,7 +26,12 @@ def _make_request_with_cluster_id(http_method, endpoint, cluster_id):
 
 
 def _print_error_msg(resp):
-    message = resp.json()['message']
+    try:
+        message = resp.json()['message']
+    except (ValueError, KeyError):
+        # if response doesn't contain valid error representation
+        # just print its content
+        message = resp.text
     print('HTTP {}: {}'.format(resp.status_code, message))
 
 
