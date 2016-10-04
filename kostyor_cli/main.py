@@ -6,7 +6,6 @@ import requests
 import six
 import sys
 
-from cliff.command import Command
 from cliff.lister import Lister
 from cliff.app import App
 from cliff.commandmanager import CommandManager
@@ -194,22 +193,6 @@ class ClusterUpgrade(ShowOne):
             message = r.json()['message']
             raise Exception(message)
         ClusterStatus.get_status(cluster_id)
-
-
-class DiscoveryMethod(Command):
-    description = "Kicks off an upgrade of specified cluster"
-    action = "create-discovery-method"
-
-    def create(method):
-        r = requests.post(
-            'http://{host}:{port}/discover-cluster'.format(
-                host=host, port=port
-            ),
-            data={'method': method}
-        )
-        if r.status_code != 201:
-            message = r.json()['message']
-            raise Exception(message)
 
 
 class ListUpgradeVersions(Lister):
