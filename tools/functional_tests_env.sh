@@ -16,5 +16,8 @@ fi
 cd $KOSTYOR_DIR
 pip install -r requirements.txt
 python setup.py install
-python tools/create_database.py
+
+# Use Alembic to build up the database
+alembic -c $KOSTYOR_DIR/kostyor/db/migrations/alembic.ini upgrade head
+python $KOSTYOR_DIR/tools/create_initial_data.py
 python kostyor/rest_api.py &
