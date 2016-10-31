@@ -175,3 +175,21 @@ class ServiceListTestCase(CLIBaseTestCase):
         self.app.run(self.command)
         self.app.request.get.assert_called_once_with(self.expected_request_str)
         main._print_error_msg.assert_called_once_with(self.resp)
+
+
+class ListDiscoveryMethodsTestCase(CLIBaseTestCase):
+    def setUp(self):
+        super(ListDiscoveryMethodsTestCase, self).setUp()
+        self.command = ['list-discovery-methods', ]
+        self.expected_request_str = 'http://1.1.1.1:22/discovery-methods'
+
+    def test_list_discovery_methods__status_200__success(self):
+        self.resp.status_code = 200
+        self.app.run(self.command)
+        self.app.request.get.assert_called_once_with(self.expected_request_str)
+        self.assertFalse(main._print_error_msg.called)
+
+    def test_list_discovery_methods__server_error__print_error_msg(self):
+        self.app.run(self.command)
+        self.app.request.get.assert_called_once_with(self.expected_request_str)
+        main._print_error_msg.assert_called_once_with(self.resp)

@@ -249,14 +249,17 @@ class ListDiscoveryMethods(Lister):
     action = "list-discovery-methods"
 
     def take_action(self, parsed_args):
-        columns = ('Discovery Method', 'Description')
+        columns = ('Discovery Methods', )
 
-        data = (('OpenStack', 'OpenStack based discovery using Keystone API'),
-                ('Ansible-Inventory', "Discover a cluster, via ansible"),
-                ('Puppet', 'Discover a cluster, via puppet'),
-                ('Fuel', 'Discover a cluster, via Fuel'))
-
-        return (columns, data)
+        data = self.app.request.get(
+            '{}/discovery-methods'.format(self.app.baseurl)
+        )
+        result = ()
+        if data.status_code == 200:
+            result = ((method.capitalize(),) for method in data.json())
+        else:
+            _print_error_msg(data)
+        return (columns, result)
 
     def list():
         r = requests.get(
