@@ -103,6 +103,10 @@ class UpgradeStart(ShowOne):
             'to_version',
             metavar='<to-version>',
             help='OpenStack release upgrade to.')
+        parser.add_argument(
+            'driver',
+            metavar='<driver>',
+            help='Driver to be used.')
         return parser
 
     def take_action(self, parsed_args):
@@ -111,6 +115,7 @@ class UpgradeStart(ShowOne):
             json={
                 'cluster_id': parsed_args.cluster,
                 'to_version': parsed_args.to_version,
+                'driver': parsed_args.driver,
             })
         resp.raise_for_status()
         return _showone(resp.json(), self.columns)
