@@ -49,11 +49,6 @@ class KostyorReadOnlyTestCase(base.BaseTestCase):
     def test_cluster_list__pre_created_server__list_not_empty(self):
         self.assertTrue(len(self.cluster_list) > 0)
 
-    def test_list_discovery_methods__check_output__list_not_empty(self):
-        raw_methods = cmd('list-discovery-methods')
-        methods = output_parser.listing(raw_methods)
-        self.assertNotEqual(0, len(methods))
-
     def test_cluster_status__pre_created_server__check_attrs(self):
         raw_cluster = cmd('cluster-status {}'.format(self.cluster_id))
         cluster = details_parser(raw_cluster)

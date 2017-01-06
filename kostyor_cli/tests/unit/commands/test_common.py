@@ -38,6 +38,16 @@ class TestShowArray(oslotest.base.BaseTestCase):
         )
         self.assertEqual(expected, showarray(data, self.columns))
 
+    def test_plain_type(self):
+        columns = ((None, 'The Label'), )
+        data = [14, 42]
+        expected = (
+            ['The Label'],
+            [[14],
+             [42]],
+        )
+        self.assertEqual(expected, showarray(data, columns))
+
 
 class TestShowOne(oslotest.base.BaseTestCase):
 

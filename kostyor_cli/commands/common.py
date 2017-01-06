@@ -1,10 +1,16 @@
+import collections
+
+
 def showarray(entities, columns):
     fields = [column[0] for column in columns]
     labels = [column[1] for column in columns]
 
     rows = []
     for entity in entities:
-        rows.append([entity.get(field) for field in fields])
+        if isinstance(entity, collections.Mapping):
+            rows.append([entity.get(field) for field in fields])
+        else:
+            rows.append([entity])
 
     return (labels, rows)
 
