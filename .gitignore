@@ -7,3 +7,4 @@ doc/build
 .eggs
 build
 dist
+*.pyc
