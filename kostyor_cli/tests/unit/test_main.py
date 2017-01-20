@@ -4,6 +4,7 @@ import mock
 from oslotest import base
 import requests
 
+from kostyor_cli.commands import common
 from kostyor_cli import main
 
 from . import CLIBaseTestCase
@@ -108,17 +109,25 @@ class HostListTestCase(CLIBaseTestCase):
         self.command = ['host-list', '1234']
         self.expected_request_str = 'http://1.1.1.1:22/clusters/1234/hosts'
 
-    def test_host_list__existing_cluster__correct_request(self):
+    @mock.patch.object(common, 'showarray')
+    def test_host_list__existing_cluster__correct_request(self,
+                                                          fake_showarray):
+        fake_host = mock.Mock()
         self.resp.status_code = 200
+        self.resp.json = mock.Mock()
+        self.resp.json.return_value = fake_host
         self.app.run(self.command)
         self.app.request.get.assert_called_once_with(self.expected_request_str)
-        self.assertFalse(main._print_error_msg.called)
+        fake_showarray.assert_called_once_with(fake_host, mock.ANY)
 
-    def test_host_list__error_server_resp__print_error_msg(self):
-        requests.get.return_value = self.resp
-        self.app.run(self.command)
+    @mock.patch.object(common, 'showarray')
+    def test_host_list__error_server_resp__print_error_msg(self,
+                                                           fake_showarray):
+        self.resp.raise_for_status = mock.Mock(side_effect=Exception())
+        self.assertFalse(fake_showarray.called)
+        self.assertRaises(Exception, self.app.run(self.command))
         self.app.request.get.assert_called_once_with(self.expected_request_str)
-        main._print_error_msg.assert_called_once_with(self.resp)
+        self.assertFalse(fake_showarray.called)
 
 
 class ServiceListTestCase(CLIBaseTestCase):
