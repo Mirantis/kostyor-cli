@@ -1,3 +1,4 @@
+from .discover import DiscoverList, DiscoverRun
 from .upgrade import (
     UpgradeList,
     UpgradeShow,
@@ -8,8 +9,10 @@ from .upgrade import (
     UpgradeCancel,
 )
 
-
 __all__ = [
+    'DiscoverList',
+    'DiscoverRun',
+
     'UpgradeList',
     'UpgradeShow',
     'UpgradeStart',

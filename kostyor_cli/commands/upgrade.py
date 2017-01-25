@@ -5,21 +5,7 @@ import six
 from cliff.lister import Lister
 from cliff.show import ShowOne
 
-
-def _showarray(entities, columns):
-    fields = [column[0] for column in columns]
-    labels = [column[1] for column in columns]
-
-    rows = []
-    for entity in entities:
-        rows.append([entity.get(field) for field in fields])
-
-    return (labels, rows)
-
-
-def _showone(entity, columns):
-    labels, rows = _showarray([entity], columns)
-    return (labels, rows[0])
+from kostyor_cli.commands.common import showarray, showone
 
 
 class UpgradeList(Lister):
@@ -48,7 +34,7 @@ class UpgradeList(Lister):
     def take_action(self, parsed_args):
         resp = self.app.request.get(self._get_endpoint(parsed_args.cluster))
         resp.raise_for_status()
-        return _showarray(resp.json(), self.columns)
+        return showarray(resp.json(), self.columns)
 
 
 class UpgradeShow(ShowOne):
@@ -75,7 +61,7 @@ class UpgradeShow(ShowOne):
     def take_action(self, parsed_args):
         resp = self.app.request.get(self._get_endpoint(parsed_args.upgrade))
         resp.raise_for_status()
-        return _showone(resp.json(), self.columns)
+        return showone(resp.json(), self.columns)
 
 
 class UpgradeStart(ShowOne):
@@ -113,7 +99,7 @@ class UpgradeStart(ShowOne):
                 'to_version': parsed_args.to_version,
             })
         resp.raise_for_status()
-        return _showone(resp.json(), self.columns)
+        return showone(resp.json(), self.columns)
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -156,7 +142,7 @@ class _UpgradeAction(ShowOne):
                 'action': self.action,
             })
         resp.raise_for_status()
-        return _showone(resp.json(), self.columns)
+        return showone(resp.json(), self.columns)
 
 
 class UpgradePause(_UpgradeAction):

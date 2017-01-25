@@ -40,44 +40,6 @@ class MakeRequestTestCase(CLIBaseTestCase):
                           'send', 'endpoint', 'cluster-id')
 
 
-class ClusterDiscoveryTestCase(CLIBaseTestCase):
-    def setUp(self):
-        super(ClusterDiscoveryTestCase, self).setUp()
-        self.expected_request_params = {
-            'method': 'openstack',
-            'cluster_name': 'new-cluster',
-            'auth_url': 'http://1.2.3.4',
-            'username': 'admin',
-            'tenant_name': 'admin',
-            'password': 'qwerty',
-        }
-        self.expected_request_str = 'http://1.1.1.1:22/discover-cluster'
-        self.command = ['discover-cluster',
-                        'openstack',
-                        'new-cluster',
-                        '--os-auth-url=http://1.2.3.4',
-                        '--username=admin',
-                        '--tenant-name=admin',
-                        '--password=qwerty']
-
-    def test_discover_cluster__expected_args__correct_request(self):
-        self.resp.status_code = 201
-        self.app.run(self.command)
-        self.app.request.post.assert_called_once_with(
-            self.expected_request_str,
-            data=self.expected_request_params)
-        self.assertFalse(main._print_error_msg.called)
-
-    def test_discover_cluster__error_server_resp__print_error_msg(self):
-        self.expected_request_params['method'] = 'fake-method'
-        self.command[1] = 'fake-method'
-        self.app.run(self.command)
-        self.app.request.post.assert_called_once_with(
-            self.expected_request_str,
-            data=self.expected_request_params)
-        main._print_error_msg.assert_called_once_with(self.resp)
-
-
 class ClusterListTestCase(CLIBaseTestCase):
     @mock.patch('requests.get', mock.MagicMock())
     def test_cluster_list__run_without_args__correct_request(self):
@@ -172,24 +134,6 @@ class ServiceListTestCase(CLIBaseTestCase):
         self.assertFalse(main._print_error_msg.called)
 
     def test_service_list__error_server_resp__print_error_msg(self):
-        self.app.run(self.command)
-        self.app.request.get.assert_called_once_with(self.expected_request_str)
-        main._print_error_msg.assert_called_once_with(self.resp)
-
-
-class ListDiscoveryMethodsTestCase(CLIBaseTestCase):
-    def setUp(self):
-        super(ListDiscoveryMethodsTestCase, self).setUp()
-        self.command = ['list-discovery-methods', ]
-        self.expected_request_str = 'http://1.1.1.1:22/discovery-methods'
-
-    def test_list_discovery_methods__status_200__success(self):
-        self.resp.status_code = 200
-        self.app.run(self.command)
-        self.app.request.get.assert_called_once_with(self.expected_request_str)
-        self.assertFalse(main._print_error_msg.called)
-
-    def test_list_discovery_methods__server_error__print_error_msg(self):
         self.app.run(self.command)
         self.app.request.get.assert_called_once_with(self.expected_request_str)
         main._print_error_msg.assert_called_once_with(self.resp)

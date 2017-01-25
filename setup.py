@@ -54,11 +54,12 @@ setup(
             'check-upgrade = kostyor_cli.main:CheckUpgrade',
             'cluster-status = kostyor_cli.main:ClusterStatus',
             'cluster-list = kostyor_cli.main:ClusterList',
-            'discover-cluster = kostyor_cli.main:ClusterDiscovery',
             'list-upgrade-versions = kostyor_cli.main:ListUpgradeVersions',
-            'list-discovery-methods = kostyor_cli.main:ListDiscoveryMethods',
             'host-list = kostyor_cli.main:HostList',
             'service-list = kostyor_cli.main:ServiceList',
+
+            'discover-list = kostyor_cli.commands:DiscoverList',
+            'discover-run = kostyor_cli.commands:DiscoverRun',
 
             'upgrade-list = kostyor_cli.commands:UpgradeList',
             'upgrade-show = kostyor_cli.commands:UpgradeShow',
