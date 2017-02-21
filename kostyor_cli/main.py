@@ -239,9 +239,15 @@ class ServiceList(Lister):
         data = self.app.request.get(request_str)
         output = ()
         if data.status_code == 200:
+            def get_hosts(service):
+                # TODO: backward compatibility, to be dropped
+                if 'host_id' in data:
+                    return service['host_id']
+                return '\n'.join(service.get('hosts', []))
+
             output = ((service['id'],
                        service['name'],
-                       service['host_id'],
+                       get_hosts(service),
                        service['version']) for service in data.json())
         else:
             _print_error_msg(data)
