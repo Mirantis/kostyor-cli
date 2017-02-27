@@ -34,12 +34,13 @@ class UpgradeShowTestCase(CLIBaseTestCase):
 class UpgradeStartTestCase(CLIBaseTestCase):
 
     def test_upgrade_start_correct_request(self):
-        self.app.run(['upgrade-start', '1234', 'mitaka'])
+        self.app.run(['upgrade-start', '1234', 'mitaka', 'openstack-ansible'])
 
         self.app.request.post.assert_called_once_with(
             'http://1.1.1.1:22/upgrades', json={
                 'cluster_id': '1234',
                 'to_version': 'mitaka',
+                'driver': 'openstack-ansible',
             }
         )
         self.resp.raise_for_status.assert_called_once_with()
