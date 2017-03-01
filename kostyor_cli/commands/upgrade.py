@@ -92,17 +92,20 @@ class UpgradeStart(ShowOne):
         parser.add_argument(
             'driver',
             metavar='<driver>',
+            nargs='?',
             help='Driver to be used.')
         return parser
 
     def take_action(self, parsed_args):
-        resp = self.app.request.post(
-            self.endpoint,
-            json={
-                'cluster_id': parsed_args.cluster,
-                'to_version': parsed_args.to_version,
-                'driver': parsed_args.driver,
-            })
+        payload = {
+            'cluster_id': parsed_args.cluster,
+            'to_version': parsed_args.to_version,
+        }
+
+        if parsed_args.driver is not None:
+            payload['driver'] = parsed_args.driver
+
+        resp = self.app.request.post(self.endpoint, json=payload)
         resp.raise_for_status()
         return showone(resp.json(), self.columns)
 
