@@ -41,6 +41,7 @@ class UpgradeStartTestCase(CLIBaseTestCase):
                 'cluster_id': '1234',
                 'to_version': 'mitaka',
                 'driver': 'openstack-ansible',
+                'parameters': {},
             }
         )
         self.resp.raise_for_status.assert_called_once_with()
@@ -52,6 +53,30 @@ class UpgradeStartTestCase(CLIBaseTestCase):
             'http://1.1.1.1:22/upgrades', json={
                 'cluster_id': '1234',
                 'to_version': 'mitaka',
+                'parameters': {},
+            }
+        )
+        self.resp.raise_for_status.assert_called_once_with()
+
+    def test_upgrade_start_correct_parameters(self):
+        self.app.run([
+            'upgrade-start', '1234', 'mitaka', 'openstack-ansible',
+            '--parameters',
+            'root=/opt/openstack-ansible',
+            'debug',
+            'user=kostyor'
+        ])
+
+        self.app.request.post.assert_called_once_with(
+            'http://1.1.1.1:22/upgrades', json={
+                'cluster_id': '1234',
+                'to_version': 'mitaka',
+                'driver': 'openstack-ansible',
+                'parameters': {
+                    'root': '/opt/openstack-ansible',
+                    'debug': True,
+                    'user': 'kostyor',
+                },
             }
         )
         self.resp.raise_for_status.assert_called_once_with()

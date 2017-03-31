@@ -18,3 +18,11 @@ def showarray(entities, columns):
 def showone(entity, columns):
     labels, rows = showarray([entity], columns)
     return (labels, rows[0])
+
+
+def parse_kv(pairs):
+    def _to_kv(pair):
+        if '=' not in pair:
+            return (pair, True)
+        return pair.split('=', 1)
+    return dict([_to_kv(param) for param in pairs])

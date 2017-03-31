@@ -5,7 +5,7 @@ import six
 from cliff.lister import Lister
 from cliff.show import ShowOne
 
-from kostyor_cli.commands.common import showarray, showone
+from kostyor_cli.commands.common import showarray, showone, parse_kv
 
 
 class UpgradeList(Lister):
@@ -94,12 +94,19 @@ class UpgradeStart(ShowOne):
             metavar='<driver>',
             nargs='?',
             help='Driver to be used.')
+        parser.add_argument(
+            '-p', '--parameters',
+            type=lambda x: x if six.PY3 else x.decode(),
+            nargs='+',
+            default=[],
+            help='Key=Value pairs to be passed to discovering.')
         return parser
 
     def take_action(self, parsed_args):
         payload = {
             'cluster_id': parsed_args.cluster,
             'to_version': parsed_args.to_version,
+            'parameters': parse_kv(parsed_args.parameters),
         }
 
         if parsed_args.driver is not None:
