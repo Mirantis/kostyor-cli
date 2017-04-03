@@ -3,7 +3,7 @@ import six
 from cliff.lister import Lister
 from cliff.show import ShowOne
 
-from kostyor_cli.commands.common import showarray, showone
+from kostyor_cli.commands.common import showarray, showone, parse_kv
 
 
 class DiscoverList(Lister):
@@ -55,18 +55,12 @@ class DiscoverRun(ShowOne):
         return parser
 
     def take_action(self, parsed_args):
-        def to_kv(pair):
-            if '=' not in pair:
-                return (pair, None)
-            return pair.split('=', 1)
-        parameters = dict([to_kv(param) for param in parsed_args.parameters])
-
         resp = self.app.request.post(
             self.endpoint,
             json={
                 'name': parsed_args.name,
                 'method': parsed_args.method,
-                'parameters': parameters,
+                'parameters': parse_kv(parsed_args.parameters),
             })
         resp.raise_for_status()
         return showone(resp.json(), self.columns)
