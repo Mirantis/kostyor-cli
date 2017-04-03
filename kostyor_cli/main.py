@@ -73,7 +73,9 @@ class ClusterList(Lister):
     def take_action(self, parsed_args):
         columns = ('Cluster Name', 'Cluster ID', 'Status')
         data = self.app.request.get('{0}/clusters'.format(self.app.baseurl))
-        clusters = data.json()['clusters']
+        clusters = data.json()
+        if isinstance(clusters, dict):
+            clusters = clusters['clusters']
         output = ((i['name'], i['id'], i['status']) for i in clusters)
 
         return (columns, output)
