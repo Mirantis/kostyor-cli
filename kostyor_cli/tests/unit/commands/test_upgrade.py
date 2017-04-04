@@ -81,6 +81,19 @@ class UpgradeStartTestCase(CLIBaseTestCase):
         )
         self.resp.raise_for_status.assert_called_once_with()
 
+    def test_upgrade_start_correct_request_w_engine(self):
+        self.app.run(['upgrade-start', '1234', 'mitaka', '-e', 'the_engine'])
+
+        self.app.request.post.assert_called_once_with(
+            'http://1.1.1.1:22/upgrades', json={
+                'cluster_id': '1234',
+                'to_version': 'mitaka',
+                'engine': 'the_engine',
+                'parameters': {},
+            }
+        )
+        self.resp.raise_for_status.assert_called_once_with()
+
 
 class UpgradeActionTestCase(CLIBaseTestCase):
 
