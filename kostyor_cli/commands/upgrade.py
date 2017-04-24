@@ -95,6 +95,11 @@ class UpgradeStart(ShowOne):
             nargs='?',
             help='Driver to be used.')
         parser.add_argument(
+            '-e', '--engine',
+            type=lambda x: x if six.PY3 else x.decode(),
+            default=None,
+            help='Engine to be used to orchestrate upgrades.')
+        parser.add_argument(
             '-p', '--parameters',
             type=lambda x: x if six.PY3 else x.decode(),
             nargs='+',
@@ -111,6 +116,9 @@ class UpgradeStart(ShowOne):
 
         if parsed_args.driver is not None:
             payload['driver'] = parsed_args.driver
+
+        if parsed_args.engine is not None:
+            payload['engine'] = parsed_args.engine
 
         resp = self.app.request.post(self.endpoint, json=payload)
         resp.raise_for_status()
