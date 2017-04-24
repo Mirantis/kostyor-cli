@@ -1,15 +1,16 @@
 #!/usr/bin/python
-import os
-
 import logging
-import requests
-import six
+import os
 import sys
 
 from cliff.lister import Lister
 from cliff.app import App
 from cliff.commandmanager import CommandManager
 from cliff.show import ShowOne
+import requests
+import six
+
+from kostyor_cli.commands import common
 
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)
@@ -205,6 +206,11 @@ class CheckUpgrade(Lister):
 
 class HostList(Lister):
     description = ("Returns a list of hosts belonging to specified cluster")
+    columns = (
+        ('id', 'Host ID'),
+        ('hostname', 'Host Name'),
+        ('region', 'Region'),
+    )
 
     def get_parser(self, prog_name):
         parser = super(HostList, self).get_parser(prog_name)
@@ -213,16 +219,11 @@ class HostList(Lister):
 
     def take_action(self, parsed_args):
         cluster_id = parsed_args.cluster_id
-        columns = ('Host ID', 'Host Name')
         request_str = '{}/clusters/{}/hosts'.format(self.app.baseurl,
                                                     cluster_id)
-        data = self.app.request.get(request_str)
-        output = ()
-        if data.status_code == 200:
-            output = ((host['id'], host['hostname']) for host in data.json())
-        else:
-            _print_error_msg(data)
-        return (columns, output)
+        resp = self.app.request.get(request_str)
+        resp.raise_for_status()
+        return common.showarray(resp.json(), self.columns)
 
 
 class ServiceList(Lister):
